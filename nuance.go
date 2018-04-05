@@ -42,30 +42,28 @@ func main() {
 			}
 			rand.Seed(time.Now().UTC().UnixNano())
 			if update.Message.Chat.Type == "private" && *update.Message.Photo != nil && len(*update.Message.Photo) > 0 {
-				for i, image := range *update.Message.Photo {
-					if (i+1)%3 == 0 {
-						url, _ := bot.GetFileDirectURL(image.FileID)
-						response, e := http.Get(url)
-						if e != nil {
-							log.Fatal(e)
-						}
-
-						defer response.Body.Close()
-						nameParts := strings.Split(url, "/")
-						name := strconv.Itoa(rand.Int()) + nameParts[len(nameParts)-1]
-						//open a file for writing
-						file, err := os.Create("./images/" + name)
-						if err != nil {
-							log.Fatal(err)
-						}
-						fmt.Println()
-						// Use io.Copy to just dump the response body to the file. This supports huge files
-						_, err = io.Copy(file, response.Body)
-						if err != nil {
-							log.Fatal(err)
-						}
-						file.Close()
+				for _, image := range *update.Message.Photo {
+					url, _ := bot.GetFileDirectURL(image.FileID)
+					response, e := http.Get(url)
+					if e != nil {
+						log.Fatal(e)
 					}
+
+					defer response.Body.Close()
+					nameParts := strings.Split(url, "/")
+					name := strconv.Itoa(rand.Int()) + nameParts[len(nameParts)-1]
+					//open a file for writing
+					file, err := os.Create("./images/" + name)
+					if err != nil {
+						log.Fatal(err)
+					}
+					fmt.Println()
+					// Use io.Copy to just dump the response body to the file. This supports huge files
+					_, err = io.Copy(file, response.Body)
+					if err != nil {
+						log.Fatal(err)
+					}
+					file.Close()
 				}
 			} else if strings.Index(strings.ToLower(update.Message.Text), "нюанс") > -1 || strings.Index(strings.ToLower(update.Message.Text), "ньюанс") > -1 {
 				msg := tgbotapi.NewPhotoUpload(update.Message.Chat.ID, randomImage())
