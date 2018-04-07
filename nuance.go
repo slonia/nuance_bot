@@ -8,7 +8,6 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -54,14 +53,20 @@ func main() {
 						downloadImage(image.FileID)
 					}
 				}
-			} else if text == "/menu" {
+			} else if text == "/help" {
 				log.Println("Show menu")
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Available actions")
 				msg.ReplyMarkup = menuKeyboard
 				bot.Send(msg)
 			} else if text == "/all" {
 				log.Println("Send all")
 				sendAllImages(*update.Message)
+			} else if text == "/delete" {
+				log.Println("Show delete menu")
+				showDeleteMenu(*update.Message)
+			} else if strings.Index(text, "/delete") == 0 {
+				log.Println("Going to delete image")
+				deleteImage(*update.Message)
 			} else if isNuance(text) {
 				answerNuance(*update.Message)
 			}
@@ -123,11 +128,45 @@ func downloadImage(fileId string) {
 	fatal(err)
 	defer response.Body.Close()
 	nameParts := strings.Split(url, "/")
-	name := strconv.Itoa(rand.Int()) + nameParts[len(nameParts)-1]
+	name := strings.Replace(nameParts[len(nameParts)-1], "file", "chapaev", 1)
 	log.Println("Downloading image to", "./images/"+name)
 	file, err := os.Create("./images/" + name)
 	fatal(err)
 	_, err = io.Copy(file, response.Body)
 	fatal(err)
 	file.Close()
+}
+
+func showDeleteMenu(message tgbotapi.Message) {
+	files := allImages()
+	buttons := []tgbotapi.KeyboardButton{}
+	for _, file := range files {
+		button := tgbotapi.NewKeyboardButton("/delete " + file)
+		buttons = append(buttons, button)
+	}
+	deleteKeyboard := tgbotapi.NewReplyKeyboard(buttons)
+	msg := tgbotapi.NewMessage(message.Chat.ID, "Select image for delete")
+	msg.ReplyMarkup = deleteKeyboard
+	bot.Send(msg)
+}
+
+func deleteImage(message tgbotapi.Message) {
+	var msg tgbotapi.MessageConfig
+	if len(allImages()) == 1 {
+		log.Println("Cannot delete last image")
+		msg = tgbotapi.NewMessage(message.Chat.ID, "Cannot delete last image")
+	} else {
+		messageParts := strings.Split(message.Text, "/delete ")
+		file := messageParts[1]
+		file = strings.Trim(file, " ")
+		fullPath := "./images/" + file
+		_, err := os.Stat(fullPath)
+		fatal(err)
+		err = os.Remove(fullPath)
+		fatal(err)
+		log.Println("Successfully deleted", fullPath)
+		msg = tgbotapi.NewMessage(message.Chat.ID, file+" deleted")
+	}
+	msg.ReplyMarkup = menuKeyboard
+	bot.Send(msg)
 }
