@@ -22,6 +22,10 @@ type Configuration struct {
 var err error
 var bot *tgbotapi.BotAPI
 
+var menuKeyboard = tgbotapi.NewReplyKeyboard(
+	tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("/all"),
+		tgbotapi.NewKeyboardButton("/delete")))
+
 func main() {
 	file, _ := os.Open("config.json")
 	defer file.Close()
@@ -42,23 +46,53 @@ func main() {
 		rand.Seed(time.Now().UTC().UnixNano())
 		text := strings.ToLower(update.Message.Text)
 		log.Println("Processing message", text)
-		if update.Message.Chat.Type == "private" && *update.Message.Photo != nil && len(*update.Message.Photo) > 0 {
-			log.Println("Downloading photo")
-			for i, image := range *update.Message.Photo {
-				if (i+1)%2 == 0 {
-					downloadImage(image.FileID)
+		if update.Message.Chat.Type == "private" {
+			if update.Message.Photo != nil && len(*update.Message.Photo) > 0 {
+				log.Println("Downloading photo")
+				for i, image := range *update.Message.Photo {
+					if (i+1)%2 == 0 {
+						downloadImage(image.FileID)
+					}
 				}
+			} else if text == "/menu" {
+				log.Println("Show menu")
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
+				msg.ReplyMarkup = menuKeyboard
+				bot.Send(msg)
+			} else if text == "/all" {
+				log.Println("Send all")
+				sendAllImages(*update.Message)
+			} else if isNuance(text) {
+				answerNuance(*update.Message)
 			}
-		} else if strings.Index(text, "нюанс") > -1 || strings.Index(text, "ньюанс") > -1 {
-			log.Println("Nuance found. Responding")
-			msg := tgbotapi.NewPhotoUpload(update.Message.Chat.ID, randomImage())
-			msg.ReplyToMessageID = update.Message.MessageID
-			bot.Send(msg)
+		} else if isNuance(text) {
+			answerNuance(*update.Message)
 		}
 	}
 }
 
-func randomImage() string {
+func isNuance(text string) bool {
+	return strings.Index(text, "нюанс") > -1 || strings.Index(text, "ньюанс") > -1
+}
+
+func answerNuance(message tgbotapi.Message) {
+	log.Println("Nuance found. Responding")
+	msg := tgbotapi.NewPhotoUpload(message.Chat.ID, randomImage())
+	msg.ReplyToMessageID = message.MessageID
+	bot.Send(msg)
+}
+
+func sendAllImages(message tgbotapi.Message) {
+	files := allImages()
+	for _, file := range files {
+		msg1 := tgbotapi.NewMessage(message.Chat.ID, file)
+		bot.Send(msg1)
+		msg2 := tgbotapi.NewPhotoUpload(message.Chat.ID, "./images/"+file)
+		bot.Send(msg2)
+	}
+}
+
+func allImages() []string {
 	var files []string
 	fileInfo, err := ioutil.ReadDir("./images/")
 	fatal(err)
@@ -68,6 +102,11 @@ func randomImage() string {
 			files = append(files, name)
 		}
 	}
+	return files
+}
+
+func randomImage() string {
+	files := allImages()
 	log.Printf("Selecting random image from %v variants\n", len(files))
 	return "./images/" + files[rand.Intn(len(files))]
 }
