@@ -21,9 +21,9 @@ type Configuration struct {
 var err error
 var bot *tgbotapi.BotAPI
 
-var menuKeyboard = tgbotapi.NewReplyKeyboard(
-	tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("/all"),
-		tgbotapi.NewKeyboardButton("/delete")))
+// var menuKeyboard = tgbotapi.NewReplyKeyboard(
+// 	tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("/all"),
+// 		tgbotapi.NewKeyboardButton("/delete")))
 
 func main() {
 	file, _ := os.Open("config.json")
@@ -45,34 +45,37 @@ func main() {
 		rand.Seed(time.Now().UTC().UnixNano())
 		text := strings.ToLower(update.Message.Text)
 		log.Println("Processing message", text)
-		if update.Message.Chat.Type == "private" {
-			if update.Message.Photo != nil && len(*update.Message.Photo) > 0 {
-				log.Println("Downloading photo")
-				for i, image := range *update.Message.Photo {
-					if (i+1)%2 == 0 {
-						downloadImage(image.FileID)
-					}
-				}
-			} else if text == "/help" {
-				log.Println("Show menu")
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Available actions")
-				msg.ReplyMarkup = menuKeyboard
-				bot.Send(msg)
-			} else if text == "/all" {
-				log.Println("Send all")
-				sendAllImages(*update.Message)
-			} else if text == "/delete" {
-				log.Println("Show delete menu")
-				showDeleteMenu(*update.Message)
-			} else if strings.Index(text, "/delete") == 0 {
-				log.Println("Going to delete image")
-				deleteImage(*update.Message)
-			} else if isNuance(text) {
-				answerNuance(*update.Message)
-			}
-		} else if isNuance(text) {
+		if isNuance(text) {
 			answerNuance(*update.Message)
 		}
+		// if update.Message.Chat.Type == "private" {
+		// 	if update.Message.Photo != nil && len(*update.Message.Photo) > 0 {
+		// 		log.Println("Downloading photo")
+		// 		for i, image := range *update.Message.Photo {
+		// 			if (i+1)%2 == 0 {
+		// 				downloadImage(image.FileID)
+		// 			}
+		// 		}
+		// 	} else if text == "/help" {
+		// 		log.Println("Show menu")
+		// 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Available actions")
+		// 		msg.ReplyMarkup = menuKeyboard
+		// 		bot.Send(msg)
+		// 	} else if text == "/all" {
+		// 		log.Println("Send all")
+		// 		sendAllImages(*update.Message)
+		// 	} else if text == "/delete" {
+		// 		log.Println("Show delete menu")
+		// 		showDeleteMenu(*update.Message)
+		// 	} else if strings.Index(text, "/delete") == 0 {
+		// 		log.Println("Going to delete image")
+		// 		deleteImage(*update.Message)
+		// 	} else if isNuance(text) {
+		// 		answerNuance(*update.Message)
+		// 	}
+		// } else if isNuance(text) {
+		// 	answerNuance(*update.Message)
+		// }
 	}
 }
 
@@ -167,6 +170,6 @@ func deleteImage(message tgbotapi.Message) {
 		log.Println("Successfully deleted", fullPath)
 		msg = tgbotapi.NewMessage(message.Chat.ID, file+" deleted")
 	}
-	msg.ReplyMarkup = menuKeyboard
+	// msg.ReplyMarkup = menuKeyboard
 	bot.Send(msg)
 }

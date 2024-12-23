@@ -1,8 +1,8 @@
 #! /bin/bash
 
-go build nuance.go
-ssh -t berlin@95.85.49.5 "sudo service nuance stop"
-scp ./nuance berlin@95.85.49.5:/home/berlin/nuance_bot/
-scp ./config.json berlin@95.85.49.5:/home/berlin/nuance_bot/config.json
-ssh -t berlin@95.85.49.5 "sudo service nuance start"
+CGO_ENABLED=0 go build nuance.go
+ssh -t server@ams_server "supervisorctl stop nuance_bot"
+scp ./nuance server@ams_server:/home/server/apps/nuance_bot/
+scp ./config.json server@ams_server:/home/server/apps/nuance_bot/config.json
+ssh -t server@ams_server "supervisorctl start nuance_bot"
 rm nuance
